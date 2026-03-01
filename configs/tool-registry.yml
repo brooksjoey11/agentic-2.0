@@ -1,0 +1,20 @@
+tools:
+  - name: shell
+    module: src.tools.shell
+    enabled: true
+
+  - name: kubernetes
+    module: src.tools.kubernetes
+    enabled: true
+
+  - name: docker
+    module: src.tools.docker
+    enabled: true
+
+  - name: aws
+    module: src.tools.aws
+    enabled: false
+
+  - name: github
+    module: src.tools.github
+    enabled: false

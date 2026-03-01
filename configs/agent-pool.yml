@@ -1,0 +1,12 @@
+pools:
+  - name: default
+    min_agents: 2
+    max_agents: 10
+    agent_type: worker
+    queue: agentic.tasks
+
+  - name: planner-pool
+    min_agents: 1
+    max_agents: 4
+    agent_type: planner
+    queue: agentic.planning
