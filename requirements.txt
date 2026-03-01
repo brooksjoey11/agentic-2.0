@@ -28,3 +28,6 @@ opentelemetry-exporter-prometheus>=0.42b0
 kubernetes>=28.1.0
 boto3>=1.34.0
 docker>=7.0.0
+# Rich Terminal UI dependencies
+rich>=13.0.0,<14.0.0
+python-dotenv>=1.0.0,<2.0.0
