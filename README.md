@@ -735,4 +735,32 @@ agentic-shell/
 └── kubernetes/           # K8s manifests
 ```
 
+## Rich Terminal UI Client
+
+An enhanced terminal interface with live-updating panels displaying conversation, agent status, tool executions, and system metrics.
+
+### Runtime Requirements
+- Python 3.8 or higher
+- Terminal with ANSI escape sequence support (checked at startup)
+- Minimum terminal dimensions: 80x24
+- UTF-8 character encoding
+- Writable log directory: `/var/log/agentic-shell/` (falls back to console-only if not writable)
+
+### Usage
+```bash
+# Run with default settings
+python -m src.client.rich_ui
+
+# Run with custom session
+SESSION_ID=custom-session-123 python -m src.client.rich_ui
+
+# Run with debug logging
+LOG_LEVEL=DEBUG python -m src.client.rich_ui
+```
+
+### Configuration
+All configuration is via environment variables. See .env.example for all options:
+- UI_MAX_HISTORY: Messages to retain (10-1000)
+- UI_REFRESH_RATE: Display refresh rate in Hz (1.0-30.0)
+- UI_SHOW_METRICS/UI_SHOW_AGENTS/UI_SHOW_TOOLS: Toggle panels (true/false)
 ```
