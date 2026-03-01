@@ -1,0 +1,449 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: agentic-shell
+  labels:
+    app: orchestrator
+    component: core
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: orchestrator
+  template:
+    metadata:
+      labels:
+        app: orchestrator
+        component: core
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+    spec:
+      containers:
+      - name: orchestrator
+        image: agentic-shell/orchestrator:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 8000
+          name: metrics
+        env:
+        - name: MISTRAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: MISTRAL_API_KEY
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: POSTGRES_PASSWORD
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: RABBITMQ_PASS
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: JWT_SECRET
+        - name: POSTGRES_HOST
+          value: postgres
+        - name: REDIS_HOST
+          value: redis
+        - name: RABBITMQ_HOST
+          value: rabbitmq
+        - name: ETCD_HOST
+          value: etcd
+        - name: CONSUL_HOST
+          value: consul
+        volumeMounts:
+        - name: config
+          mountPath: /app/configs
+        - name: logs
+          mountPath: /app/logs
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+      volumes:
+      - name: config
+        configMap:
+          name: agentic-shell-config
+      - name: logs
+        emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: planner
+  namespace: agentic-shell
+  labels:
+    app: agent
+    agent-type: planner
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: agent
+      agent-type: planner
+  template:
+    metadata:
+      labels:
+        app: agent
+        agent-type: planner
+    spec:
+      containers:
+      - name: planner
+        image: agentic-shell/worker:latest
+        env:
+        - name: AGENT_TYPE
+          value: planner
+        - name: MISTRAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: MISTRAL_API_KEY
+        - name: REDIS_HOST
+          value: redis
+        - name: RABBITMQ_HOST
+          value: rabbitmq
+        - name: RABBITMQ_USER
+          value: agentic
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: RABBITMQ_PASS
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+      - name: logs
+        emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: executor
+  namespace: agentic-shell
+  labels:
+    app: agent
+    agent-type: executor
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: agent
+      agent-type: executor
+  template:
+    metadata:
+      labels:
+        app: agent
+        agent-type: executor
+    spec:
+      containers:
+      - name: executor
+        image: agentic-shell/worker:latest
+        env:
+        - name: AGENT_TYPE
+          value: executor
+        - name: MISTRAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: MISTRAL_API_KEY
+        - name: REDIS_HOST
+          value: redis
+        - name: RABBITMQ_HOST
+          value: rabbitmq
+        - name: RABBITMQ_USER
+          value: agentic
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: RABBITMQ_PASS
+        - name: ENABLED_TOOLS
+          value: "shell,kubernetes,docker,aws,github"
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: docker-socket
+          mountPath: /var/run/docker.sock
+        - name: kube-config
+          mountPath: /home/app/.kube
+        - name: aws-config
+          mountPath: /home/app/.aws
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: docker-socket
+        hostPath:
+          path: /var/run/docker.sock
+      - name: kube-config
+        hostPath:
+          path: /home/user/.kube
+      - name: aws-config
+        hostPath:
+          path: /home/user/.aws
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coder
+  namespace: agentic-shell
+  labels:
+    app: agent
+    agent-type: coder
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: agent
+      agent-type: coder
+  template:
+    metadata:
+      labels:
+        app: agent
+        agent-type: coder
+    spec:
+      containers:
+      - name: coder
+        image: agentic-shell/worker:latest
+        env:
+        - name: AGENT_TYPE
+          value: coder
+        - name: MISTRAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: MISTRAL_API_KEY
+        - name: REDIS_HOST
+          value: redis
+        - name: RABBITMQ_HOST
+          value: rabbitmq
+        - name: RABBITMQ_USER
+          value: agentic
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: RABBITMQ_PASS
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+      - name: logs
+        emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: debugger
+  namespace: agentic-shell
+  labels:
+    app: agent
+    agent-type: debugger
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: agent
+      agent-type: debugger
+  template:
+    metadata:
+      labels:
+        app: agent
+        agent-type: debugger
+    spec:
+      containers:
+      - name: debugger
+        image: agentic-shell/worker:latest
+        env:
+        - name: AGENT_TYPE
+          value: debugger
+        - name: MISTRAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: MISTRAL_API_KEY
+        - name: REDIS_HOST
+          value: redis
+        - name: RABBITMQ_HOST
+          value: rabbitmq
+        - name: RABBITMQ_USER
+          value: agentic
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: RABBITMQ_PASS
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+      - name: logs
+        emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: optimizer
+  namespace: agentic-shell
+  labels:
+    app: agent
+    agent-type: optimizer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: agent
+      agent-type: optimizer
+  template:
+    metadata:
+      labels:
+        app: agent
+        agent-type: optimizer
+    spec:
+      containers:
+      - name: optimizer
+        image: agentic-shell/worker:latest
+        env:
+        - name: AGENT_TYPE
+          value: optimizer
+        - name: MISTRAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: MISTRAL_API_KEY
+        - name: REDIS_HOST
+          value: redis
+        - name: RABBITMQ_HOST
+          value: rabbitmq
+        - name: RABBITMQ_USER
+          value: agentic
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: RABBITMQ_PASS
+        - name: PROMETHEUS_URL
+          value: http://prometheus:9090
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+      - name: logs
+        emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reflector
+  namespace: agentic-shell
+  labels:
+    app: agent
+    agent-type: reflector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent
+      agent-type: reflector
+  template:
+    metadata:
+      labels:
+        app: agent
+        agent-type: reflector
+    spec:
+      containers:
+      - name: reflector
+        image: agentic-shell/worker:latest
+        env:
+        - name: AGENT_TYPE
+          value: reflector
+        - name: MISTRAL_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: MISTRAL_API_KEY
+        - name: REDIS_HOST
+          value: redis
+        - name: RABBITMQ_HOST
+          value: rabbitmq
+        - name: RABBITMQ_USER
+          value: agentic
+        - name: RABBITMQ_PASS
+          valueFrom:
+            secretKeyRef:
+              name: agentic-shell-secrets
+              key: RABBITMQ_PASS
+        - name: POSTGRES_HOST
+          value: postgres
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+      - name: logs
+        emptyDir: {}

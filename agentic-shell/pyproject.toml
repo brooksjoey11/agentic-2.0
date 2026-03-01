@@ -1,0 +1,85 @@
+[tool.poetry]
+name = "agentic-shell"
+version = "2.0.0"
+description = "Distributed Cognitive Architecture for AI-powered terminal"
+authors = ["Agentic Shell Team <team@agentic-shell.io>"]
+license = "MIT"
+readme = "README.md"
+homepage = "https://agentic-shell.io"
+repository = "https://github.com/yourorg/agentic-shell"
+keywords = ["ai", "terminal", "agent", "distributed", "cognitive"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.104.0"
+uvicorn = {extras = ["standard"], version = "^0.24.0"}
+websockets = "^12.0"
+aio-pika = "^9.3.0"
+redis = "^5.0.1"
+asyncpg = "^0.29.0"
+etcd3 = "^0.12.0"
+python-consul = "^1.1.0"
+mistralai = "^0.1.0"
+prometheus-client = "^0.19.0"
+pydantic = {extras = ["email"], version = "^2.5.0"}
+python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+passlib = {extras = ["bcrypt"], version = "^1.7.4"}
+python-multipart = "^0.0.6"
+httpx = "^0.25.0"
+aiohttp = "^3.9.0"
+rich = "^13.7.0"
+click = "^8.1.7"
+psutil = "^5.9.6"
+pyyaml = "^6.0.1"
+python-json-logger = "^2.0.7"
+opentelemetry-api = "^1.21.0"
+opentelemetry-sdk = "^1.21.0"
+opentelemetry-instrumentation-fastapi = "^0.42b0"
+opentelemetry-exporter-prometheus = "^0.42b0"
+kubernetes = "^28.1.0"
+boto3 = "^1.34.0"
+docker = "^7.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+pytest-cov = "^4.1.0"
+black = "^23.12.0"
+isort = "^5.13.0"
+mypy = "^1.7.0"
+ruff = "^0.1.8"
+pre-commit = "^3.6.0"
+locust = "^2.20.1"
+websocket-client = "^1.7.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "N", "W"]
+ignore = []
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = [
+    "tests",
+]
+asyncio_mode = "auto"

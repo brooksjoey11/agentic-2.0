@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: agentic-shell
+  labels:
+    name: agentic-shell
+    environment: production

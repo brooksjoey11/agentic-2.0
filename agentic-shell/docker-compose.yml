@@ -1,0 +1,379 @@
+version: '3.8'
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+networks:
+  agentic-mesh:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:
+  etcd-data:
+  prometheus-data:
+  grafana-data:
+
+services:
+  # === ORCHESTRATOR ===
+  orchestrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.orchestrator
+    container_name: agentic-orchestrator
+    environment:
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - AGENT_ID=${AGENT_ID:-ag_019ca619014874dfbef495f2174d390d}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=agentic
+      - POSTGRES_USER=agentic
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-agentic123}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER:-agentic}
+      - RABBITMQ_PASS=${RABBITMQ_PASS:-agentic123}
+      - ETCD_HOST=etcd
+      - ETCD_PORT=2379
+      - CONSUL_HOST=consul
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+      - ./configs:/app/configs:ro
+    networks:
+      - agentic-mesh
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      etcd:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # === AGENT WORKERS ===
+  planner:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: agentic-planner
+    environment:
+      - AGENT_TYPE=planner
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - AGENT_ID=${AGENT_ID}
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+    volumes:
+      - ./logs:/app/logs
+      - ./configs:/app/configs:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - agentic-mesh
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      replicas: ${PLANNER_REPLICAS:-3}
+
+  executor:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: agentic-executor
+    environment:
+      - AGENT_TYPE=executor
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - AGENT_ID=${AGENT_ID}
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+    volumes:
+      - ./logs:/app/logs
+      - ./configs:/app/configs:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ~/.kube/config:/home/app/.kube/config:ro
+      - ~/.aws:/home/app/.aws:ro
+      - ~/.config/gh:/home/app/.config/gh:ro
+    networks:
+      - agentic-mesh
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      replicas: ${EXECUTOR_REPLICAS:-5}
+
+  coder:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: agentic-coder
+    environment:
+      - AGENT_TYPE=coder
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - AGENT_ID=${AGENT_ID}
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+    volumes:
+      - ./logs:/app/logs
+      - ./configs:/app/configs:ro
+    networks:
+      - agentic-mesh
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      replicas: ${CODER_REPLICAS:-4}
+
+  debugger:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: agentic-debugger
+    environment:
+      - AGENT_TYPE=debugger
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - AGENT_ID=${AGENT_ID}
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+    volumes:
+      - ./logs:/app/logs
+      - ./configs:/app/configs:ro
+    networks:
+      - agentic-mesh
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      replicas: ${DEBUGGER_REPLICAS:-2}
+
+  optimizer:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: agentic-optimizer
+    environment:
+      - AGENT_TYPE=optimizer
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - AGENT_ID=${AGENT_ID}
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - PROMETHEUS_URL=http://prometheus:9090
+    volumes:
+      - ./logs:/app/logs
+      - ./configs:/app/configs:ro
+    networks:
+      - agentic-mesh
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      replicas: ${OPTIMIZER_REPLICAS:-2}
+
+  reflector:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: agentic-reflector
+    environment:
+      - AGENT_TYPE=reflector
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY}
+      - AGENT_ID=${AGENT_ID}
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=${RABBITMQ_USER}
+      - RABBITMQ_PASS=${RABBITMQ_PASS}
+      - POSTGRES_HOST=postgres
+    volumes:
+      - ./logs:/app/logs
+      - ./configs:/app/configs:ro
+    networks:
+      - agentic-mesh
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    restart: unless-stopped
+    deploy:
+      replicas: ${REFLECTOR_REPLICAS:-1}
+
+  # === INFRASTRUCTURE ===
+  postgres:
+    image: postgres:15
+    container_name: agentic-postgres
+    environment:
+      - POSTGRES_DB=agentic
+      - POSTGRES_USER=agentic
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-agentic123}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    networks:
+      - agentic-mesh
+    logging: *default-logging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentic"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: agentic-redis
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - agentic-mesh
+    logging: *default-logging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: agentic-rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USER:-agentic}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASS:-agentic123}
+      - RABBITMQ_DEFAULT_VHOST=/
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit heartbeat 60
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - agentic-mesh
+    logging: *default-logging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  etcd:
+    image: bitnami/etcd:latest
+    container_name: agentic-etcd
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_DATA_DIR=/bitnami/etcd/data
+    volumes:
+      - etcd-data:/bitnami/etcd
+    ports:
+      - "2379:2379"
+      - "2380:2380"
+    networks:
+      - agentic-mesh
+    logging: *default-logging
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  consul:
+    image: consul:latest
+    container_name: agentic-consul
+    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    volumes:
+      - ./configs/consul:/consul/config
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    networks:
+      - agentic-mesh
+    logging: *default-logging
+    restart: unless-stopped
+
+  # === MONITORING ===
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: agentic-prometheus
+    volumes:
+      - ./configs/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - agentic-mesh
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: agentic-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - ./configs/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./configs/grafana/datasources:/etc/grafana/provisioning/datasources
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      - agentic-mesh
+    depends_on:
+      - prometheus
+    restart: unless-stopped
