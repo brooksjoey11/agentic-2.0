@@ -1,67 +1,100 @@
 # **AGENTIC 2.0**
 
 ```
-agentic-shell/
-├── README.md
-├── setup.sh
-├── install.sh
-├── docker-compose.yml
-├── kubernetes/
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   └── configmap.yaml
-├── src/
-│   ├── orchestrator/
-│   │   ├── __init__.py
-│   │   ├── main.py
-│   │   ├── routes/
-│   │   ├── models/
-│   │   └── config.py
-│   ├── agents/
-│   │   ├── base.py
-│   │   ├── planner.py
-│   │   ├── executor.py
-│   │   ├── coder.py
-│   │   ├── debugger.py
-│   │   ├── optimizer.py
-│   │   └── reflector.py
-│   ├── tools/
-│   │   ├── registry.py
-│   │   ├── kubernetes.py
-│   │   ├── docker.py
-│   │   ├── aws.py
-│   │   ├── github.py
-│   │   └── shell.py
-│   └── client/
-│       ├── cli.py
-│       ├── rich_ui.py
-│       └── websocket.py
-├── configs/
-│   ├── agent-pool.yml
-│   ├── tool-registry.yml
-│   ├── logging.conf
-│   └── prometheus/
-├── scripts/
-│   ├── init-db.sql
-│   ├── create-admin.sh
-│   └── backup.sh
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── load/
-├── docs/
-│   ├── architecture.md
-│   ├── api.md
-│   ├── deployment.md
-│   └── contributing.md
+agentic-2.0/
 ├── .env.example
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── .gitignore
-├── Makefile
-├── pyproject.toml
-├── poetry.lock
-├── requirements.txt
 ├── Dockerfile
-└── LICENSE
+├── Dockerfile.orchestrator
+├── Dockerfile.worker
+├── Makefile
+├── README.md
+├── client/
+│   └── src/
+│       ├── app.tsx
+│       └── index.css
+├── docker-compose.yml
+├── drizzle/
+│   └── schema.ts
+├── install.sh
+├── kubernetes/
+│   ├── configmap.yaml
+│   ├── deployment.yaml
+│   ├── hpa.yaml
+│   ├── ingress.yaml
+│   ├── kustomization.yaml
+│   ├── namespace.yaml
+│   ├── secrets.yaml
+│   └── service.yaml
+├── package.json
+├── pyproject.toml
+├── requirements.txt
+├── scripts/
+│   ├── backup.sh
+│   ├── create-admin.py
+│   ├── init-db.sql
+│   └── setup-dev.sh
+├── server/
+│   ├── index.ts
+│   ├── pipeline.ts
+│   └── providerservice.ts
+├── setup.sh
+└── src/
+    ├── agents/
+    │   ├── __init__.py
+    │   ├── base.py
+    │   └── worker.py
+    ├── client/
+    │   ├── __init__.py
+    │   └── cli.py
+    ├── orchestrator/
+    │   ├── __init__.py
+    │   ├── auth.py
+    │   ├── cache/
+    │   │   └── redis.py
+    │   ├── config.py
+    │   ├── db/
+    │   │   └── database.py
+    │   ├── dependencies.py
+    │   ├── discovery/
+    │   │   └── consul.py
+    │   ├── main.py
+    │   ├── messaging/
+    │   │   └── rabbitmq.py
+    │   ├── models/
+    │   │   ├── __init__.py
+    │   │   ├── agent.py
+    │   │   ├── common.py
+    │   │   ├── session.py
+    │   │   └── tool.py
+    │   ├── registry/
+    │   │   └── etcd.py
+    │   ├── routes/
+    │   │   ├── __init__.py
+    │   │   ├── agents.py
+    │   │   ├── health.py
+    │   │   ├── metrics.py
+    │   │   ├── sessions.py
+    │   │   └── tools.py
+    │   └── services/
+    │       ├── __init__.py
+    │       ├── agent.py
+    │       ├── health.py
+    │       ├── metrics.py
+    │       ├── queue.py
+    │       ├── session.py
+    │       └── tool.py
+    └── tools/
+        ├── __init__.py
+        ├── aws.py
+        ├── docker.py
+        ├── github.py
+        ├── kubernetes.py
+        ├── registry.py
+        └── shell.py
 ```
 
 ---
@@ -710,29 +743,35 @@ make docker-build
 ### Project Structure
 
 ```
-agentic-shell/
-├── src/
-│   ├── orchestrator/     # FastAPI orchestrator
-│   ├── agents/           # Agent implementations
-│   │   ├── base.py       # Base agent class
-│   │   ├── planner.py    # Task decomposition
-│   │   ├── executor.py   # Command execution
-│   │   ├── coder.py      # Code generation
-│   │   ├── debugger.py   # Error analysis
-│   │   ├── optimizer.py  # Performance tuning
-│   │   └── reflector.py  # Learning from history
-│   ├── tools/            # Tool implementations
-│   │   ├── registry.py   # Tool registration
-│   │   ├── kubernetes.py # K8s operations
-│   │   ├── docker.py     # Docker operations
-│   │   ├── aws.py        # AWS operations
-│   │   └── shell.py      # Shell execution
-│   └── client/           # Client SDK
-├── tests/                # Test suite
-├── docs/                 # Documentation
-├── configs/              # Configuration files
+agentic-2.0/
+├── .env.example
+├── .github/workflows/ci.yml
+├── .gitignore
+├── Dockerfile
+├── Dockerfile.orchestrator
+├── Dockerfile.worker
+├── Makefile
+├── client/src/           # Frontend source (React/TSX)
+│   ├── app.tsx
+│   └── index.css
+├── docker-compose.yml
+├── drizzle/schema.ts     # Database schema
+├── install.sh
+├── kubernetes/           # K8s manifests
+├── package.json
+├── pyproject.toml
+├── requirements.txt
 ├── scripts/              # Utility scripts
-└── kubernetes/           # K8s manifests
+├── server/               # TypeScript server
+│   ├── index.ts
+│   ├── pipeline.ts
+│   └── providerservice.ts
+├── setup.sh
+└── src/                  # Python backend
+    ├── agents/           # Agent implementations
+    ├── client/           # Client SDK
+    ├── orchestrator/     # FastAPI orchestrator
+    └── tools/            # Tool implementations
 ```
 
 ```
