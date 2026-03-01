@@ -479,7 +479,7 @@ spec:
         ports:
         - containerPort: 80
 ```
-
+```
 🤖 Executor> Applying to Kubernetes:
 ✅ Deployment created
 ✅ Service exposed on port 80
