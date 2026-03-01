@@ -1,0 +1,79 @@
+# configs/prometheus.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'agentic-monitor'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'orchestrator'
+    scrape_interval: 10s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['orchestrator:8080']
+        labels:
+          service: orchestrator
+
+  - job_name: 'worker'
+    scrape_interval: 10s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['worker:8081']
+        labels:
+          service: worker
+
+  - job_name: 'client'
+    scrape_interval: 10s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['client:8082']
+        labels:
+          service: client
+
+  - job_name: 'postgres'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['postgres:9187']
+        labels:
+          service: postgres
+
+  - job_name: 'redis'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['redis:9121']
+        labels:
+          service: redis
+
+  - job_name: 'rabbitmq'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['rabbitmq:15692']
+        labels:
+          service: rabbitmq
+
+  - job_name: 'etcd'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['etcd:2379']
+        labels:
+          service: etcd
+
+  - job_name: 'consul'
+    scrape_interval: 10s
+    metrics_path: /v1/agent/metrics
+    static_configs:
+      - targets: ['consul:8500']
+        labels:
+          service: consul
