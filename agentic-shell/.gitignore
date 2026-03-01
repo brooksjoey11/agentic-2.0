@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.env
+.venv
+env/
+ENV/
+env.bak/
+venv.bak/
+*.egg-info/
+dist/
+build/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Data
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Backups
+backups/
+*.backup
+*.sql.gz
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+*.cover
+.hypothesis/
+
+# Docker
+*.pid
+docker-compose.override.yml
+
+# Kubernetes
+*.secret.yaml
+kubeconfig
+
+# Environment
+.env
+.env.local
+.env.production
+.env.staging
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+agentic-shell.log
+agentic-shell.json
+agentic-shell.sqlite

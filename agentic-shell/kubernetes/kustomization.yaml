@@ -1,0 +1,57 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: agentic-shell
+
+resources:
+- namespace.yaml
+- configmap.yaml
+- secrets.yaml
+- deployment.yaml
+- service.yaml
+- ingress.yaml
+- hpa.yaml
+
+commonLabels:
+  app.kubernetes.io/name: agentic-shell
+  app.kubernetes.io/version: 2.0.0
+  app.kubernetes.io/managed-by: kustomize
+
+images:
+- name: agentic-shell/orchestrator
+  newName: ghcr.io/yourorg/agentic-shell/orchestrator
+  newTag: latest
+- name: agentic-shell/worker
+  newName: ghcr.io/yourorg/agentic-shell/worker
+  newTag: latest
+
+configMapGenerator:
+- name: agentic-shell-config
+  behavior: merge
+  literals:
+  - LOG_LEVEL=info
+  - LOG_FORMAT=json
+
+secretGenerator:
+- name: agentic-shell-secrets
+  behavior: merge
+  literals:
+  - MISTRAL_API_KEY=placeholder
+  - POSTGRES_PASSWORD=placeholder
+  - RABBITMQ_PASS=placeholder
+  - JWT_SECRET=placeholder
+
+patchesStrategicMerge:
+- |-
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: orchestrator
+  spec:
+    template:
+      spec:
+        containers:
+        - name: orchestrator
+          env:
+          - name: ENVIRONMENT
+            value: production

@@ -1,0 +1,136 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator
+  namespace: agentic-shell
+  labels:
+    app: orchestrator
+spec:
+  selector:
+    app: orchestrator
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+  - name: metrics
+    port: 8001
+    targetPort: 8001
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator-external
+  namespace: agentic-shell
+spec:
+  selector:
+    app: orchestrator
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8000
+  - name: websocket
+    port: 8000
+    targetPort: 8000
+  type: LoadBalancer
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: agentic-shell
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: 5432
+  clusterIP: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: agentic-shell
+spec:
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+  clusterIP: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: agentic-shell
+spec:
+  selector:
+    app: rabbitmq
+  ports:
+  - name: amqp
+    port: 5672
+    targetPort: 5672
+  - name: management
+    port: 15672
+    targetPort: 15672
+  clusterIP: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etcd
+  namespace: agentic-shell
+spec:
+  selector:
+    app: etcd
+  ports:
+  - port: 2379
+    targetPort: 2379
+  - port: 2380
+    targetPort: 2380
+  clusterIP: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: consul
+  namespace: agentic-shell
+spec:
+  selector:
+    app: consul
+  ports:
+  - name: http
+    port: 8500
+    targetPort: 8500
+  - name: serf
+    port: 8301
+    targetPort: 8301
+  clusterIP: None
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: agentic-shell
+spec:
+  selector:
+    app: prometheus
+  ports:
+  - port: 9090
+    targetPort: 9090
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: agentic-shell
+spec:
+  selector:
+    app: grafana
+  ports:
+  - port: 3000
+    targetPort: 3000
+  type: ClusterIP
