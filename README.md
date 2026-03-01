@@ -1,4 +1,4 @@
-# **AGENTIC SHELL 2.0 - PRODUCTION GRADE REPOSITORY**
+# **AGENTIC 2.0**
 
 ```
 agentic-shell/
