@@ -1,72 +1,44 @@
 #!/bin/bash
-# setup-dev.sh - Development environment setup
-
 set -e
 
-echo "🚀 AI to Production - Development Setup"
+echo "🚀 Agentic Shell 2.0 - Development Setup"
 echo "========================================"
 
 # Check prerequisites
 echo "🔍 Checking prerequisites..."
+command -v python3 >/dev/null 2>&1 || { echo "❌ Python 3 required"; exit 1; }
+command -v docker >/dev/null 2>&1 || { echo "❌ Docker required"; exit 1; }
+command -v docker-compose >/dev/null 2>&1 || { echo "❌ Docker Compose required"; exit 1; }
 
-command -v node >/dev/null 2>&1 || { echo "❌ Node.js is required but not installed." >&2; exit 1; }
-command -v pnpm >/dev/null 2>&1 || { echo "❌ pnpm is required but not installed. Install with: npm install -g pnpm" >&2; exit 1; }
-command -v mysql >/dev/null 2>&1 || echo "⚠️ MySQL client not found. Install if you need to manage the database locally."
-command -v redis-cli >/dev/null 2>&1 || echo "⚠️ Redis client not found. Install if you need to manage Redis locally."
-
-NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
-if [ "$NODE_VERSION" -lt 20 ]; then
-    echo "❌ Node.js 20+ required (found $(node -v))"
+PY_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+if ! python3 -c 'import sys; assert sys.version_info >= (3, 11)' 2>/dev/null; then
+    echo "❌ Python 3.11+ required (found $PY_VERSION)"
     exit 1
 fi
-
 echo "✅ Prerequisites checked"
 
-# Install dependencies
-echo "📦 Installing dependencies..."
-pnpm install
+# Create virtual environment
+echo "🐍 Creating virtual environment..."
+python3 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip poetry
+poetry install
 
-# Setup git hooks
-echo "🔧 Setting up git hooks..."
-pnpm prepare
-
-# Copy environment file
+# Copy environment file if not exists
 if [ ! -f .env ]; then
     echo "📝 Creating .env file from example..."
     cp .env.example .env
-    echo "⚠️ Please edit .env with your configuration"
-else
-    echo "✅ .env file already exists"
+    echo "⚠️  Please edit .env with your configuration"
 fi
 
-# Setup database
-echo "🗄️ Setting up database..."
-if command -v mysql >/dev/null 2>&1; then
-    read -p "Create database? (y/n) " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        mysql -e "CREATE DATABASE IF NOT EXISTS ai2prod;" 2>/dev/null || echo "⚠️ Could not create database. Ensure MySQL is running."
-    fi
-fi
-
-# Run migrations
-echo "🔄 Running database migrations..."
-pnpm db:migrate || echo "⚠️ Migrations failed. Ensure database is configured in .env"
-
-# Seed database
-echo "🌱 Seeding database..."
-pnpm db:seed || echo "⚠️ Seeding failed"
-
-# Create uploads directory
-mkdir -p uploads
-mkdir -p logs
+# Create necessary directories
+mkdir -p logs data/postgres
 
 echo ""
 echo "✅ Setup complete!"
 echo ""
 echo "Next steps:"
 echo "  1. Edit .env with your configuration"
-echo "  2. Start development server: make dev"
-echo "  3. Open http://localhost:3000"
-echo ""
-echo "Happy coding! 🎉"
+echo "  2. Start services: docker-compose up -d"
+echo "  3. Run orchestrator: poetry run python -m src.orchestrator.main"
+echo "  4. Connect client: poetry run python -m src.client.cli"

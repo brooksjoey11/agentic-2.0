@@ -1,108 +1,57 @@
-name: CI
+name: Python CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [ main, develop ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
-  lint:
-    name: Lint & Type Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-          
-      - name: Install dependencies
-        run: pnpm install
-        
-      - name: Lint
-        run: pnpm lint
-        
-      - name: Type check
-        run: pnpm typecheck
-
   test:
-    name: Test
     runs-on: ubuntu-latest
     services:
-      mysql:
-        image: mysql:8.0
+      postgres:
+        image: postgres:15
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: ai2prod_test
+          POSTGRES_DB: agentic_test
+          POSTGRES_USER: agentic
+          POSTGRES_PASSWORD: agentic123
         ports:
-          - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-      
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
       redis:
         image: redis:7
         ports:
           - 6379:6379
-        options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
-    
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
         with:
-          node-version: '20'
-          
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-          
+          python-version: '3.11'
       - name: Install dependencies
-        run: pnpm install
-        
-      - name: Run migrations
-        run: pnpm db:migrate
-        env:
-          DATABASE_URL: mysql://root:root@localhost:3306/ai2prod_test
-          
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
       - name: Run tests
-        run: pnpm test
         env:
-          DATABASE_URL: mysql://root:root@localhost:3306/ai2prod_test
+          DATABASE_URL: postgresql://agentic:agentic123@localhost:5432/agentic_test
           REDIS_URL: redis://localhost:6379
           JWT_SECRET: test-secret
           ENCRYPTION_KEY: $(openssl rand -base64 32)
-          
+        run: poetry run pytest tests/ -v --cov=src
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
-          files: ./coverage/lcov.info
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          
-      - uses: pnpm/action-setup@v2
-        with:
-          version: 8
-          
-      - name: Install dependencies
-        run: pnpm install
-        
-      - name: Build
-        run: pnpm build
-        
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: dist
-          path: dist/
+          files: ./coverage.xml
