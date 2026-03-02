@@ -1,45 +1,23 @@
-# API Documentation
+# API Reference
+
+The orchestrator exposes a REST API and a WebSocket endpoint.
 
 ## Base URL
-
-All API endpoints are relative to: `http://localhost:8000`
+All endpoints are prefixed with `http://localhost:8000` (configurable via `PORT`).
 
 ## Authentication
-
-Most endpoints require JWT authentication via Bearer token:
-
-```
-
-Authorization: Bearer <jwt_token>
+All REST endpoints except `/health`, `/metrics`, `/docs`, and `/openapi.json` require a JWT token in the `Authorization` header:
 
 ```
-
-### OAuth Flow
-
-1. Redirect user to Google OAuth:
+Authorization: Bearer <token>
 ```
-
-GET /auth/google
-
-```
-
-2. Handle callback:
-```
-
-GET /auth/google/callback?code=<authorization_code>
-
-```
-
-3. Receive JWT token in response cookie
 
 ## REST Endpoints
 
 ### Health Check
 
 ```
-
 GET /health
-
 ```
 
 **Response:**
@@ -49,15 +27,14 @@ GET /health
   "version": "2.0.0",
   "components": {
     "database": {"status": "healthy", "latency_ms": 12},
-    "redis": {"status": "healthy", "latency_ms": 3},
-    "rabbitmq": {"status": "healthy", "latency_ms": 5}
+    "redis": {"status": "healthy", "latency_ms": 3}
   }
 }
 ```
 
-Session Management
+### Session Management
 
-Create Session
+#### Create Session
 
 ```
 POST /sessions
@@ -85,27 +62,27 @@ Response:
 }
 ```
 
-Get Session
+#### Get Session
 
 ```
 GET /sessions/{session_id}
 ```
 
-Delete Session
+#### Delete Session
 
 ```
 DELETE /sessions/{session_id}
 ```
 
-List Sessions
+#### List Sessions
 
 ```
 GET /sessions?skip=0&limit=100
 ```
 
-Agent Management
+### Agent Management
 
-List Agents
+#### List Agents
 
 ```
 GET /agents
@@ -136,7 +113,7 @@ Response:
 ]
 ```
 
-Get Agent Metrics
+#### Get Agent Metrics
 
 ```
 GET /agents/{agent_type}/metrics?hours=24
@@ -160,7 +137,7 @@ Response:
 }
 ```
 
-Control Agent (Admin Only)
+#### Control Agent (Admin Only)
 
 ```
 POST /agents/{agent_type}/control
@@ -176,9 +153,9 @@ Request Body:
 }
 ```
 
-Tool Management
+### Tool Management
 
-List Tools
+#### List Tools
 
 ```
 GET /tools
@@ -209,7 +186,7 @@ Response:
 ]
 ```
 
-Execute Tool
+#### Execute Tool
 
 ```
 POST /tools/{tool_name}/execute
@@ -239,15 +216,15 @@ Response:
 }
 ```
 
-Get Execution History
+#### Get Execution History
 
 ```
 GET /tools/executions/history?tool_name=kubernetes&limit=50
 ```
 
-Metrics
+### Metrics
 
-Prometheus Metrics
+#### Prometheus Metrics
 
 ```
 GET /metrics
@@ -255,7 +232,7 @@ GET /metrics
 
 Returns Prometheus-formatted metrics.
 
-System Summary (Admin Only)
+#### System Summary (Admin Only)
 
 ```
 GET /metrics/summary
@@ -295,21 +272,21 @@ Response:
 }
 ```
 
-WebSocket API
+## WebSocket API
 
-Connection
+### Connection
 
 ```
 ws://localhost:8000/ws/{session_id}
 ```
 
-Message Format
+### Message Format
 
-All messages are JSON objects with a type field.
+All messages are JSON objects with a `type` field.
 
-Client Messages
+### Client Messages
 
-User Message:
+**User Message:**
 
 ```json
 {
@@ -322,7 +299,7 @@ User Message:
 }
 ```
 
-Cancel Stream:
+**Cancel Stream:**
 
 ```json
 {
@@ -331,7 +308,7 @@ Cancel Stream:
 }
 ```
 
-Ping:
+**Ping:**
 
 ```json
 {
@@ -339,9 +316,9 @@ Ping:
 }
 ```
 
-Server Messages
+### Server Messages
 
-Agent Response:
+**Agent Response:**
 
 ```json
 {
@@ -360,7 +337,7 @@ Agent Response:
 }
 ```
 
-Tool Result:
+**Tool Result:**
 
 ```json
 {
@@ -376,7 +353,7 @@ Tool Result:
 }
 ```
 
-Token Stream:
+**Token Stream:**
 
 ```json
 {
@@ -386,7 +363,7 @@ Token Stream:
 }
 ```
 
-Complete:
+**Complete:**
 
 ```json
 {
@@ -401,7 +378,7 @@ Complete:
 }
 ```
 
-Error:
+**Error:**
 
 ```json
 {
@@ -410,7 +387,7 @@ Error:
 }
 ```
 
-Pong:
+**Pong:**
 
 ```json
 {
@@ -419,25 +396,21 @@ Pong:
 }
 ```
 
-Error Codes
+## Error Codes
 
-Code Description
-400 Bad Request - Invalid input
-401 Unauthorized - Missing or invalid authentication
-403 Forbidden - Insufficient permissions
-404 Not Found - Resource doesn't exist
-429 Too Many Requests - Rate limit exceeded
-500 Internal Server Error - Unexpected error
-502 Bad Gateway - Upstream service failed
-503 Service Unavailable - System overloaded
-504 Gateway Timeout - Upstream timeout
+| Code | Description |
+|------|-------------|
+| 400 | Bad Request - Invalid input |
+| 401 | Unauthorized - Missing or invalid authentication |
+| 403 | Forbidden - Insufficient permissions |
+| 404 | Not Found - Resource doesn't exist |
+| 429 | Too Many Requests - Rate limit exceeded |
+| 500 | Internal Server Error - Unexpected error |
+| 502 | Bad Gateway - Upstream service failed |
+| 503 | Service Unavailable - System overloaded |
+| 504 | Gateway Timeout - Upstream timeout |
 
-Rate Limits
-
-Tier Requests per day Concurrent
-Free 5 1
-Pro 100 5
-Enterprise 1000 20
+## Rate Limiting
 
 Rate limit headers are included in all responses:
 
@@ -445,16 +418,12 @@ Rate limit headers are included in all responses:
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1704067200
-X-RateLimit-Tier: pro
 ```
 
-Pagination
+## Pagination
 
-List endpoints support pagination with skip and limit parameters:
+List endpoints support pagination with `skip` and `limit` parameters:
 
 ```
 GET /sessions?skip=20&limit=10
 ```
-
-Response includes total count in metadata when available.
-
